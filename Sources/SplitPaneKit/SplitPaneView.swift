@@ -63,6 +63,22 @@ public class SplitPaneView: UIView {
         return view
     }()
     
+    // Wrapper views that don't clip - these hold the shadows
+    private let topWrapperView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let bottomWrapperView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    // Content views that clip
     public let topContainerView: UIView = {
         let view = UIView()
         view.clipsToBounds = true
@@ -116,20 +132,25 @@ public class SplitPaneView: UIView {
         topContainerView.layer.cornerRadius = configuration.cornerRadius
         topContainerView.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
         
-        // Apply shadows if configured
+        // Add wrapper views
+        addSubview(topWrapperView)
+        addSubview(bottomWrapperView)
+        addSubview(handleContainer)
+        handleContainer.addSubview(handle)
+        
+        // Add containers to wrappers
+        topWrapperView.addSubview(topContainerView)
+        bottomWrapperView.addSubview(bottomContainerView)
+        bottomContainerView.addSubview(draggableArea)
+        
+        // Apply shadows to wrapper views
         if let topShadow = configuration.topPaneShadow {
-            applyShadow(to: topContainerView, configuration: topShadow)
+            applyShadow(to: topWrapperView, configuration: topShadow)
         }
         
         if let bottomShadow = configuration.bottomPaneShadow {
-            applyShadow(to: bottomContainerView, configuration: bottomShadow)
+            applyShadow(to: bottomWrapperView, configuration: bottomShadow)
         }
-        
-        addSubview(topContainerView)
-        addSubview(bottomContainerView)
-        addSubview(handleContainer)
-        handleContainer.addSubview(handle)
-        bottomContainerView.addSubview(draggableArea)
         
         setupConstraints()
         
@@ -161,10 +182,6 @@ public class SplitPaneView: UIView {
         view.layer.shadowOpacity = configuration.opacity
         view.layer.shadowRadius = configuration.radius
         view.layer.shadowOffset = configuration.offset
-        if configuration.opacity > 0 {
-            view.layer.shouldRasterize = true
-            view.layer.rasterizationScale = UIScreen.main.scale
-        }
     }
     
     private func setupConstraints() {
@@ -172,23 +189,38 @@ public class SplitPaneView: UIView {
         /// Avoids any layout constraint warnings
         let initialHeight: CGFloat = 200
         
-        bottomContainerHeightConstraint = bottomContainerView.heightAnchor.constraint(equalToConstant: initialHeight)
-        bottomContainerTopConstraint = bottomContainerView.topAnchor.constraint(equalTo: topContainerView.bottomAnchor, constant: configuration.handleSpacing)
+        bottomContainerHeightConstraint = bottomWrapperView.heightAnchor.constraint(equalToConstant: initialHeight)
+        bottomContainerTopConstraint = bottomWrapperView.topAnchor.constraint(equalTo: topWrapperView.bottomAnchor, constant: configuration.handleSpacing)
         bottomContainerHeightConstraint.priority = .required
         bottomContainerTopConstraint.priority = .defaultHigh
         
         NSLayoutConstraint.activate([
-            topContainerView.topAnchor.constraint(equalTo: topAnchor),
-            topContainerView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            topContainerView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            // Top wrapper
+            topWrapperView.topAnchor.constraint(equalTo: topAnchor),
+            topWrapperView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            topWrapperView.trailingAnchor.constraint(equalTo: trailingAnchor),
             
+            // Top container inside wrapper
+            topContainerView.topAnchor.constraint(equalTo: topWrapperView.topAnchor),
+            topContainerView.leadingAnchor.constraint(equalTo: topWrapperView.leadingAnchor),
+            topContainerView.trailingAnchor.constraint(equalTo: topWrapperView.trailingAnchor),
+            topContainerView.bottomAnchor.constraint(equalTo: topWrapperView.bottomAnchor),
+            
+            // Bottom wrapper
             bottomContainerTopConstraint,
-            bottomContainerView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            bottomContainerView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            bottomContainerView.bottomAnchor.constraint(equalTo: bottomAnchor).withPriority(.defaultHigh),
+            bottomWrapperView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            bottomWrapperView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            bottomWrapperView.bottomAnchor.constraint(equalTo: bottomAnchor).withPriority(.defaultHigh),
             bottomContainerHeightConstraint,
             
-            handleContainer.topAnchor.constraint(equalTo: topContainerView.bottomAnchor),
+            // Bottom container inside wrapper
+            bottomContainerView.topAnchor.constraint(equalTo: bottomWrapperView.topAnchor),
+            bottomContainerView.leadingAnchor.constraint(equalTo: bottomWrapperView.leadingAnchor),
+            bottomContainerView.trailingAnchor.constraint(equalTo: bottomWrapperView.trailingAnchor),
+            bottomContainerView.bottomAnchor.constraint(equalTo: bottomWrapperView.bottomAnchor),
+            
+            // Handle
+            handleContainer.topAnchor.constraint(equalTo: topWrapperView.bottomAnchor),
             handleContainer.leadingAnchor.constraint(equalTo: leadingAnchor),
             handleContainer.trailingAnchor.constraint(equalTo: trailingAnchor),
             handleContainer.heightAnchor.constraint(equalToConstant: configuration.handleSpacing),
@@ -198,6 +230,7 @@ public class SplitPaneView: UIView {
             handle.centerXAnchor.constraint(equalTo: handleContainer.centerXAnchor),
             handle.centerYAnchor.constraint(equalTo: handleContainer.centerYAnchor),
             
+            // Draggable area
             draggableArea.topAnchor.constraint(equalTo: bottomContainerView.topAnchor),
             draggableArea.leadingAnchor.constraint(equalTo: bottomContainerView.leadingAnchor),
             draggableArea.trailingAnchor.constraint(equalTo: bottomContainerView.trailingAnchor),
@@ -410,29 +443,6 @@ public class SplitPaneView: UIView {
             hasPerformedInitialLayout = true
             updateHeight(animated: false)
         }
-        
-        updateShadowPaths()
-    }
-    
-    private func updateShadowPaths() {
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        
-        if configuration.topPaneShadow != nil {
-            topContainerView.layer.shadowPath = UIBezierPath(
-                roundedRect: topContainerView.bounds,
-                cornerRadius: topContainerView.layer.cornerRadius
-            ).cgPath
-        }
-        
-        if configuration.bottomPaneShadow != nil {
-            bottomContainerView.layer.shadowPath = UIBezierPath(
-                roundedRect: bottomContainerView.bounds,
-                cornerRadius: bottomContainerView.layer.cornerRadius
-            ).cgPath
-        }
-        
-        CATransaction.commit()
     }
     
     // MARK: - Private API
@@ -492,32 +502,6 @@ public class SplitPaneView: UIView {
         lastFeedbackBreakpoint = breakpoint
         impactFeedback.impactOccurred()
     }
-    
-    private func startDisplayLink() {
-        guard displayLink == nil else { return }
-        displayLink = CADisplayLink(target: self, selector: #selector(displayLinkTick))
-        displayLink?.add(to: .current, forMode: .common)
-    }
-    
-    private func stopDisplayLink() {
-        displayLink?.invalidate()
-        displayLink = nil
-    }
-    
-    public override func willMove(toWindow newWindow: UIWindow?) {
-        super.willMove(toWindow: newWindow)
-        if newWindow == nil {
-            stopDisplayLink()
-        }
-    }
-    
-    @objc private func displayLinkTick() {
-        if topContainerView.bounds != lastTopBounds || bottomContainerView.bounds != lastBottomBounds {
-            lastTopBounds = topContainerView.bounds
-            lastBottomBounds = bottomContainerView.bounds
-            updateShadowPaths()
-        }
-    }
 }
 
 extension SplitPaneView: UIGestureRecognizerDelegate {
@@ -546,8 +530,6 @@ extension SplitPaneView: UIGestureRecognizerDelegate {
             initialDragHeight = bottomContainerHeightConstraint.constant
             lastFeedbackBreakpoint = currentBreakpoint
             
-            startDisplayLink()
-            
             UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
                 self.handle.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
                 self.handle.alpha = 0.8
@@ -567,7 +549,6 @@ extension SplitPaneView: UIGestureRecognizerDelegate {
             delegate?.splitPaneView(self, isDraggingWithTranslation: translation, velocity: velocity)
         case .ended, .cancelled, .failed:
             isDraggingPane = false
-            stopDisplayLink()
             
             UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
                 self.handle.transform = .identity
@@ -598,7 +579,6 @@ extension SplitPaneView: UIGestureRecognizerDelegate {
             
         default:
             isDraggingPane = false
-            stopDisplayLink()
             break
         }
     }

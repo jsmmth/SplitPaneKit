@@ -89,7 +89,7 @@ public class SplitPaneView: UIView {
     // MARK: - Init
     /// Initializes a new split pane view
     ///
-    /// - **Parameters**:
+    /// - Parameters:
     ///   - configuration: The configuration for the split pane. Defaults to `.default`.
     public init(configuration: SplitPaneConfiguration = .default) {
         self.configuration = configuration

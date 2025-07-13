@@ -19,7 +19,7 @@ A flexible UIKit component for creating draggable split-pane interfaces with smo
 1. In Xcode, choose **File ▶ Add Packages…**
 2. Enter this repository URL:
    ```
-   https://github.com/jsmmth/SplitPaneView.git
+   https://github.com/jsmmth/SplitPaneKit.git
    ```
 3. Click **Add Package**, select your target(s), and finish.
 
@@ -35,7 +35,7 @@ let package = Package(
   name: "MyApp",
   platforms: [.iOS(.v13)],
   dependencies: [
-    .package(url: "https://github.com/yourusername/SplitPaneView.git", from: "0.0.1"),
+    .package(url: "https://github.com/jsmmth/SplitPaneKit.git", from: "0.0.1"),
   ],
   targets: [
     .target(
@@ -51,14 +51,14 @@ let package = Package(
 Then in your code:
 
 ```swift
-import SplitPaneView
+import SplitPaneKit
 ```
 
 ---
 
 ## 🎨 Core Concepts
 
-### SplitPaneView
+### SplitPaneKit
 
 The main container that manages two content panes with a draggable divider between them. The bottom pane can be dragged to different predefined heights (breakpoints).
 

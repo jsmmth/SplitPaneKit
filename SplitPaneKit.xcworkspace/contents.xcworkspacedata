@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:README.md">
+   </FileRef>
+   <FileRef
+      location = "group:Examples/UIKitExample/UIKitExample.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:Package.swift">
+   </FileRef>
+   <Group
+      location = "group:Sources"
+      name = "Sources">
+      <Group
+         location = "group:SplitPaneKit"
+         name = "SplitPaneKit">
+         <FileRef
+            location = "group:SplitPaneView.swift">
+         </FileRef>
+         <FileRef
+            location = "group:SplitPaneContentView.swift">
+         </FileRef>
+         <FileRef
+            location = "group:SplitPaneKit.swift">
+         </FileRef>
+      </Group>
+   </Group>
+</Workspace>
